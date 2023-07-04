@@ -1,5 +1,61 @@
 import vtk
 
+
+class MeasureInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
+    def __init__(self, renderer):
+        self.AddObserver("KeyPressEvent", self.on_key_press)
+        self.AddObserver("KeyReleaseEvent", self.on_key_release)
+        self.AddObserver("LeftButtonPressEvent", self.on_left_button_press)
+        self.AddObserver("LeftButtonReleaseEvent", self.on_left_button_release)
+        self.renderer = renderer
+        self.line_source = vtk.vtkLineSource()
+        self.line_mapper = vtk.vtkPolyDataMapper()
+        self.line_mapper.SetInputConnection(self.line_source.GetOutputPort())
+        self.line_actor = vtk.vtkActor()
+        self.line_actor.SetMapper(self.line_mapper)
+        self.renderer.AddActor(self.line_actor)
+        self.start_point = [0, 0, 0]
+        self.end_point = [0, 0, 0]
+        self.alt_pressed = False
+        self.text_actor = vtk.vtkTextActor()
+        self.text_actor.SetPosition(10, 10)
+        self.text_actor.GetTextProperty().SetFontSize(18)
+        self.renderer.AddActor2D(self.text_actor)
+
+    def on_key_press(self, obj, event):
+        key = self.GetInteractor().GetKeySym()
+        if key == "Alt_L":
+            self.alt_pressed = True
+
+    def on_key_release(self, obj, event):
+        key = self.GetInteractor().GetKeySym()
+        if key == "Alt_L":
+            self.alt_pressed = False
+
+    def on_left_button_press(self, obj, event):
+        if self.alt_pressed:
+            click_pos = self.GetInteractor().GetEventPosition()
+            picker = vtk.vtkCellPicker()
+            picker.Pick(click_pos[0], click_pos[1], 0, self.renderer)
+            self.start_point = picker.GetPickPosition()
+
+    def on_left_button_release(self, obj, event):
+        if self.alt_pressed:
+            click_pos = self.GetInteractor().GetEventPosition()
+            picker = vtk.vtkCellPicker()
+            picker.Pick(click_pos[0], click_pos[1], 0, self.renderer)
+            self.end_point = picker.GetPickPosition()
+
+            distance = vtk.vtkMath.Distance2BetweenPoints(self.start_point, self.end_point)
+            self.text_actor.SetInput(f"Distance: {distance:.2f}")
+
+            self.line_source.SetPoint1(self.start_point)
+            self.line_source.SetPoint2(self.end_point)
+            self.line_source.Update()
+
+            self.GetInteractor().GetRenderWindow().Render()
+
+
 def render_stl_file(file_path):
     # Create a reader and load the STL file
     reader = vtk.vtkSTLReader()
@@ -8,18 +64,6 @@ def render_stl_file(file_path):
 
     # Get the STL mesh
     stl_mesh = reader.GetOutput()
-
-    # Calculate width (thickness) for each point of the mesh
-    width_array = vtk.vtkDoubleArray()
-    width_array.SetNumberOfComponents(1)
-    width_array.SetName("Width")
-
-    for i in range(stl_mesh.GetNumberOfPoints()):
-        point = stl_mesh.GetPoint(i)
-        width = point[2]  # Assuming the width is the Z-coordinate of each point
-        width_array.InsertNextValue(width)
-
-    stl_mesh.GetPointData().SetScalars(width_array)
 
     # Create a mapper
     mapper = vtk.vtkPolyDataMapper()
@@ -33,7 +77,7 @@ def render_stl_file(file_path):
     renderer = vtk.vtkRenderer()
     renderer.AddActor(actor)
 
-    # Create a render window and set the renderer
+    # Create a render window
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
 
@@ -41,27 +85,18 @@ def render_stl_file(file_path):
     interactor = vtk.vtkRenderWindowInteractor()
     interactor.SetRenderWindow(render_window)
 
+    # Set the custom interactor style
+    measure_style = MeasureInteractorStyle(renderer)
+    interactor.SetInteractorStyle(measure_style)
+
     # Initialize the interactor and start the rendering loop
     interactor.Initialize()
-
-    # Create a color transfer function for the heatmap
-    color_transfer_function = vtk.vtkColorTransferFunction()
-    color_transfer_function.AddRGBPoint(0.0, 0.0, 0.0, 1.0)  # Blue color for minimum width
-    color_transfer_function.AddRGBPoint(0.7, 1.0, 0.0, 0.0)  # Red color for maximum width
-
-    # Set scalar visibility
-    mapper.SetScalarVisibility(True)
-    mapper.SetScalarModeToUsePointData()
-    mapper.SetColorModeToMapScalars()
-    mapper.ScalarVisibilityOn()
-
-    # Set the color transfer function as the lookup table for the mapper
-    mapper.SetLookupTable(color_transfer_function)
-
-    # Start the rendering loop
     render_window.Render()
+
+    # Start the interactor loop
     interactor.Start()
 
+
 if __name__ == "__main__":
-    file_path = 'a.stl'
+    file_path = 'path_to_stl_file.stl'
     render_stl_file(file_path)
