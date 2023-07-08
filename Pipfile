@@ -8,5 +8,6 @@ vtk = "*"
 flask = "*"
 install = "*"
 pyvista = "*"
+pyqt5 = "*"
 
 [dev-packages]
