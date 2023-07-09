@@ -1,6 +1,7 @@
 import vtk
 from PyQt5 import QtCore, QtGui, QtWidgets
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from PyQt5.QtWidgets import QAction, QFileDialog
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -83,7 +84,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_model)
 
+          # Create a File menu
+        file_menu = self.menuBar().addMenu("File")
+
+        # Create an Open action in the File menu
+        open_action = QAction("Open", self)
+        open_action.setShortcut("Ctrl+O")
+        open_action.triggered.connect(self.open_file)
+        file_menu.addAction(open_action)
+
+    def open_file(self):
+            file_dialog = QFileDialog()
+            file_path, _ = file_dialog.getOpenFileName(self, "Open STL File", "", "STL Files (*.stl)")
+
+            if file_path:
+                self.load_stl_file(file_path)
+
     def load_stl_file(self, file_path):
+        # Remove existing actors from the renderer
+        self.renderer.RemoveAllViewProps()
+
         # Create a reader and load the STL file
         reader = vtk.vtkSTLReader()
         reader.SetFileName(file_path)
@@ -104,6 +124,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.renderer.AddActor(actor)
         self.renderer.ResetCamera()
         self.vtk_widget.GetRenderWindow().Render()
+
+
 
     def on_slider_value_changed(self, value):
         # Restart the update timer
