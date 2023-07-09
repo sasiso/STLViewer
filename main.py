@@ -111,15 +111,6 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Express CAD Service Viewer")
 
-         # Apply the dark theme style to the title bar
-        self.setStyleSheet(
-            """
-            QMainWindow {
-                background-color: #333333;
-            }
-            """
-        )
-
         # Create a VTK widget
         self.vtk_widget = QVTKRenderWindowInteractor(self)
 

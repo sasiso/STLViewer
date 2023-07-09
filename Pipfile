@@ -11,5 +11,6 @@ pyvista = "*"
 pyqt5 = "*"
 reportlab = "*"
 fpdf = "*"
+pyinstaller = "*"
 
 [dev-packages]
