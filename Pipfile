@@ -9,5 +9,7 @@ flask = "*"
 install = "*"
 pyvista = "*"
 pyqt5 = "*"
+reportlab = "*"
+fpdf = "*"
 
 [dev-packages]
