@@ -1,19 +1,6 @@
-import vtk
-from PyQt5 import QtCore, QtGui, QtWidgets
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from PyQt5.QtWidgets import QAction, QFileDialog
-from PyQt5.QtWidgets import QTextEdit
 from collections import defaultdict
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.colors import yellow
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from PyQt5.QtWidgets import QProgressBar
-from PyQt5.QtGui import QPixmap
-from custom_pdf import CustomPDF
 
+import vtk
 
 
 class AnnotationInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
@@ -97,4 +84,3 @@ class AnnotationInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def OnRightButtonDown(self):
         if not self.window.annotation_button.isChecked():
             super().OnRightButtonDown()
-

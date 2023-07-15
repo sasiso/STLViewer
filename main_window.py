@@ -1,18 +1,12 @@
 import vtk
-from PyQt5 import QtCore, QtGui, QtWidgets
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from PyQt5.QtWidgets import QAction, QFileDialog
-from PyQt5.QtWidgets import QTextEdit
-from collections import defaultdict
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.colors import yellow
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from PyQt5.QtWidgets import QProgressBar
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QAction, QFileDialog
+from PyQt5.QtWidgets import QProgressBar
+from PyQt5.QtWidgets import QTextEdit
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from annotation_interactor import AnnotationInteractorStyle
+from custom_pdf import CustomPDF
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -68,9 +62,8 @@ class MainWindow(QtWidgets.QMainWindow):
         tool_layout.addWidget(self.slider)
         tool_layout.addWidget(self.switch_button)
         tool_layout.addStretch()
-        
+
         self.progress_bar = QProgressBar(self.tool_pane)
-        
 
         tool_layout.addWidget(self.progress_bar)
 
@@ -186,7 +179,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def initialize_progress_bar(self):
         self.progress_bar.setRange(0, 100)
 
-                    
     def rotate_camera(self):
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
@@ -254,7 +246,6 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception as ex:
             print(ex)
 
-
     def on_annotation_button_clicked(self):
         if self.annotation_button.isChecked():
             self.annotation_text_edit.setEnabled(True)
@@ -321,4 +312,3 @@ class MainWindow(QtWidgets.QMainWindow):
                 actor.GetProperty().SetRepresentationToSurface()
             actor = actors.GetNextItem()
         self.vtk_widget.GetRenderWindow().Render()
-
