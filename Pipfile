@@ -5,12 +5,7 @@ name = "pypi"
 
 [packages]
 vtk = "*"
-flask = "*"
-install = "*"
-pyvista = "*"
 pyqt5 = "*"
-reportlab = "*"
 fpdf = "*"
 pyinstaller = "*"
-
 [dev-packages]

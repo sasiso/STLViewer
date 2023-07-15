@@ -2,12 +2,11 @@ import vtk
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QAction, QFileDialog
-from PyQt5.QtWidgets import QProgressBar
-from PyQt5.QtWidgets import QTextEdit
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from PyQt5.QtWidgets import QProgressBar
+import measurement_interactor
 from annotation_interactor import AnnotationInteractorStyle
 from custom_pdf import CustomPDF
-import measurement_interactor
 from drawing_interactor import DrawingInteractorStyle
 
 
@@ -19,12 +18,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create a VTK widget
         self.vtk_widget = QVTKRenderWindowInteractor(self)
 
-        # Create an instance of AnnotationInteractorStyle
-        self.annotation_interactor_style = AnnotationInteractorStyle(
-            self.vtk_widget, self
-        )
-        # Create a DrawingInteractorStyle instance
-        self.drawing_interactor_style = DrawingInteractorStyle(self.vtk_widget, self)
+        # Initialize VTK objects and rendering
+        self.renderer = vtk.vtkRenderer()
+        self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
+
+        # Load and render the STL file
+        self.load_stl_file("path_to_stl_file.stl")
 
         # Create a tool pane widget
         self.tool_pane = QtWidgets.QWidget(self)
@@ -32,8 +32,11 @@ class MainWindow(QtWidgets.QMainWindow):
             int(0.2 * self.width())
         )  # Set maximum width to 20% of window width
 
+        # Group the buttons in a box layout
+        button_layout = QtWidgets.QVBoxLayout()
+
         # Create a slider widget
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self.tool_pane)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setMinimum(0)
         self.slider.setMaximum(100)
         self.slider.setValue(100)
@@ -50,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         # Create a wireframe switch button
-        self.switch_button = QtWidgets.QPushButton("Wireframe", self.tool_pane)
+        self.switch_button = QtWidgets.QPushButton("Wireframe")
         self.switch_button.setCheckable(True)
         self.switch_button.setStyleSheet(
             "QPushButton {"
@@ -65,37 +68,87 @@ class MainWindow(QtWidgets.QMainWindow):
             "}"
         )
 
-        # Create the layout for the tool pane
-        tool_layout = QtWidgets.QVBoxLayout(self.tool_pane)
-        tool_layout.addWidget(self.slider)
-        tool_layout.addWidget(self.switch_button)
-        tool_layout.addStretch()
+        # Create the annotation mode toggle button
+        self.annotation_button = QtWidgets.QPushButton("Annotation Mode")
+        self.annotation_button.setCheckable(True)
+        self.annotation_button.setStyleSheet(
+            "QPushButton {"
+            "background-color: #2196F3;"
+            "border: none;"
+            "padding: 5px 10px;"
+            "border-radius: 5px;"
+            "color: white;"
+            "}"
+            "QPushButton:checked {"
+            "background-color: #F44336;"
+            "}"
+        )
 
+        # Create a measurement mode toggle button
+        self.measurement_button = QtWidgets.QPushButton("Measurement Mode")
+        self.measurement_button.setCheckable(True)
+        self.measurement_button.setStyleSheet(
+            "QPushButton {"
+            "background-color: #2196F3;"
+            "border: none;"
+            "padding: 5px 10px;"
+            "border-radius: 5px;"
+            "color: white;"
+            "}"
+            "QPushButton:checked {"
+            "background-color: #F44336;"
+            "}"
+        )
+
+        # Create the drawing mode toggle button
+        self.drawing_button = QtWidgets.QPushButton("Drawing Mode")
+        self.drawing_button.setCheckable(True)
+        self.drawing_button.setStyleSheet(
+            "QPushButton {"
+            "background-color: #2196F3;"
+            "border: none;"
+            "padding: 5px 10px;"
+            "border-radius: 5px;"
+            "color: white;"
+            "}"
+            "QPushButton:checked {"
+            "background-color: #F44336;"
+            "}"
+        )
+
+        # Create the annotation text edit widget
+        self.annotation_text_edit = QtWidgets.QTextEdit(self.tool_pane)
+        self.annotation_text_edit.setPlaceholderText("Add annotation...")
+        self.annotation_text_edit.setEnabled(False)
+        self.annotation_text_edit.setStyleSheet(
+            "QTextEdit {" "border: 1px solid gray;" "border-radius: 5px;" "}"
+        )
         self.progress_bar = QProgressBar(self.tool_pane)
+        # Add buttons to the button layout
+        button_layout.addWidget(self.slider)
+        button_layout.addWidget(self.switch_button)
 
-        tool_layout.addWidget(self.progress_bar)
+        button_layout.addWidget(self.measurement_button)
+        button_layout.addWidget(self.drawing_button)
+        button_layout.addWidget(self.annotation_button)
+        button_layout.addWidget(self.annotation_text_edit)
+        button_layout.addWidget(self.progress_bar)
+        button_layout.addStretch()
 
-        # Create the main layout
-        main_layout = QtWidgets.QHBoxLayout()
+        # Set the layout for the tool pane
+        self.tool_pane.setLayout(button_layout)
+        
+
+        # Create a frame to hold the VTK widget and tool pane
+        frame = QtWidgets.QFrame(self)
+        main_layout = QtWidgets.QHBoxLayout(frame)
         main_layout.addWidget(self.vtk_widget)
         main_layout.addWidget(self.tool_pane)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Create a frame and set the main layout
-        frame = QtWidgets.QFrame(self)
-        frame.setLayout(main_layout)
-
         # Set the central widget
         self.setCentralWidget(frame)
-
-        # Initialize VTK objects and rendering
-        self.renderer = vtk.vtkRenderer()
-        self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
-        self.interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
-
-        # Load and render the STL file
-        self.load_stl_file("path_to_stl_file.stl")
 
         # Connect the slider value change event
         self.slider.valueChanged.connect(self.on_slider_value_changed)
@@ -103,11 +156,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # Connect the switch button clicked event
         self.switch_button.clicked.connect(self.on_switch_button_clicked)
 
-        # Create a timer to delay the update
-        self.update_timer = QtCore.QTimer()
-        self.update_timer.setInterval(500)  # Adjust the delay as needed
-        self.update_timer.setSingleShot(True)
-        self.update_timer.timeout.connect(self.update_model)
+        # Connect the annotation button clicked event
+        self.annotation_button.clicked.connect(self.on_annotation_button_clicked)
+
+        # Connect the measurement button clicked event
+        self.measurement_button.clicked.connect(self.on_measurement_button_clicked)
+
+        # Connect the drawing button clicked event
+        self.drawing_button.clicked.connect(self.on_drawing_button_clicked)
+
+        # Connect the measurement button clicked event
+        self.measurement_button.clicked.connect(self.on_measurement_button_clicked)        
 
         # Create a File menu
         file_menu = self.menuBar().addMenu("File")
@@ -123,94 +182,25 @@ class MainWindow(QtWidgets.QMainWindow):
         save_pdf_action.triggered.connect(self.save_pdf_dialog)
         file_menu.addAction(save_pdf_action)
 
-        # Create the annotation mode toggle button
-        self.annotation_button = QtWidgets.QPushButton(
-            "Annotation Mode", self.tool_pane
+        # Create a timer to delay the update
+        self.update_timer = QtCore.QTimer()
+        self.update_timer.setInterval(500)  # Adjust the delay as needed
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(self.update_model)
+        self.setup_interectors()
+
+    def setup_interectors(self):
+        # Create an instance of AnnotationInteractorStyle
+        self.annotation_interactor_style = AnnotationInteractorStyle(
+            self.vtk_widget, self
         )
-        self.annotation_button.setCheckable(True)
-        self.annotation_button.setStyleSheet(
-            "QPushButton {"
-            "background-color: #2196F3;"
-            "border: none;"
-            "padding: 5px 10px;"
-            "border-radius: 5px;"
-            "color: white;"
-            "}"
-            "QPushButton:checked {"
-            "background-color: #F44336;"
-            "}"
-        )
-
-        # Add the annotation button to the tool pane layout
-        tool_layout.addWidget(self.annotation_button)
-
-        # Create an annotation text edit widget
-        self.annotation_text_edit = QTextEdit(self.tool_pane)
-        self.annotation_text_edit.setPlaceholderText("Add annotation...")
-        self.annotation_text_edit.setEnabled(False)
-        self.annotation_text_edit.setStyleSheet(
-            "QTextEdit {" "border: 1px solid gray;" "border-radius: 5px;" "}"
-        )
-
-        # Add the annotation text edit widget to the tool pane layout
-        tool_layout.addWidget(self.annotation_text_edit)
-
-        # ... existing code ...
-
-        # Connect the annotation button clicked event
-        self.annotation_button.clicked.connect(self.on_annotation_button_clicked)
-        self.progress_bar.setValue(0)
-        self.initialize_progress_bar()
-
-        # Create a measurement mode toggle button
-        self.measurement_button = QtWidgets.QPushButton(
-            "Measurement Mode", self.tool_pane
-        )
-        self.measurement_button.setCheckable(True)
-        self.measurement_button.setStyleSheet(
-            "QPushButton {"
-            "background-color: #2196F3;"
-            "border: none;"
-            "padding: 5px 10px;"
-            "border-radius: 5px;"
-            "color: white;"
-            "}"
-            "QPushButton:checked {"
-            "background-color: #F44336;"
-            "}"
-        )
-        # Create the drawing mode toggle button
-        self.drawing_button = QtWidgets.QPushButton("Drawing Mode", self.tool_pane)
-        self.drawing_button.setCheckable(True)
-        self.drawing_button.setStyleSheet(
-            "QPushButton {"
-            "background-color: #2196F3;"
-            "border: none;"
-            "padding: 5px 10px;"
-            "border-radius: 5px;"
-            "color: white;"
-            "}"
-            "QPushButton:checked {"
-            "background-color: #F44336;"
-            "}"
-        )
-
-        # Add the drawing button to the tool pane layout
-        tool_layout.addWidget(self.drawing_button)
-
-        # Connect the drawing button clicked event
-        self.drawing_button.clicked.connect(self.on_drawing_button_clicked)
-
-        # Add the measurement button to the tool pane layout
-        tool_layout.addWidget(self.measurement_button)
+        # Create a DrawingInteractorStyle instance
+        self.drawing_interactor_style = DrawingInteractorStyle(self.vtk_widget, self)
 
         # Create an instance of MeasurementInteractorStyle
         self.measurement_interactor_style = (
             measurement_interactor.MeasurementInteractorStyle(self.vtk_widget, self)
         )
-
-        # Connect the measurement button clicked event
-        self.measurement_button.clicked.connect(self.on_measurement_button_clicked)
 
     def update_progress(self, value):
         self.progress_bar.setValue(int(value))
