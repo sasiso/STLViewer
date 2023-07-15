@@ -1,7 +1,7 @@
-# measurement_interactor.py
 import vtk
 from collections import defaultdict
 import math
+
 class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def __init__(self, vtk_widget, window):
         self.window = window
@@ -12,6 +12,8 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         self.measurement_start_position = None
         self.measurement_active = False
         self.scaling_factor = 1.0  # Set the scaling factor here
+        self.line_actor = None  # Line actor to store the line between start and end points
+
 
     def left_button_press_event(self, obj, event):
         if not self.window.measurement_button.isChecked():
@@ -45,7 +47,29 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
             distance_mm = self.calculate_distance(
                 self.measurement_start_position, position
             )
-            self.add_measurement_text(self.measurement_start_position, distance_mm)
+            self.add_measurement_text(position, distance_mm)
+            self.draw_line(self.measurement_start_position, position)
+
+    def draw_line(self, start_position, end_position):
+        # Create a line between the start and end position
+        line_source = vtk.vtkLineSource()
+        line_source.SetPoint1(start_position)
+        line_source.SetPoint2(end_position)
+        line_source.Update()
+
+        # Create a mapper and actor for the line
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(line_source.GetOutput())
+
+        self.line_actor = vtk.vtkActor()
+        self.line_actor.SetMapper(mapper)
+        self.line_actor.GetProperty().SetColor(1.0, 0.0, 0.0)  # Red color
+        self.line_actor.GetProperty().SetLineWidth(2)  # Adjust line width as needed
+
+        # Add the line actor to the renderer
+        self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer().AddActor(self.line_actor)
+        self.vtk_widget.GetRenderWindow().Render()
+
 
     def calculate_distance(self, start_position, end_position):
         # Calculate the distance between two points in millimeters
