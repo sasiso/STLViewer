@@ -8,6 +8,7 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from annotation_interactor import AnnotationInteractorStyle
 from custom_pdf import CustomPDF
 import measurement_interactor
+from drawing_interactor import DrawingInteractorStyle
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -22,6 +23,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.annotation_interactor_style = AnnotationInteractorStyle(
             self.vtk_widget, self
         )
+        # Create a DrawingInteractorStyle instance
+        self.drawing_interactor_style = DrawingInteractorStyle(self.vtk_widget, self)
+
         # Create a tool pane widget
         self.tool_pane = QtWidgets.QWidget(self)
         self.tool_pane.setMaximumWidth(
@@ -158,7 +162,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_bar.setValue(0)
         self.initialize_progress_bar()
 
-               # Create a measurement mode toggle button
+        # Create a measurement mode toggle button
         self.measurement_button = QtWidgets.QPushButton(
             "Measurement Mode", self.tool_pane
         )
@@ -175,13 +179,34 @@ class MainWindow(QtWidgets.QMainWindow):
             "background-color: #F44336;"
             "}"
         )
+        # Create the drawing mode toggle button
+        self.drawing_button = QtWidgets.QPushButton("Drawing Mode", self.tool_pane)
+        self.drawing_button.setCheckable(True)
+        self.drawing_button.setStyleSheet(
+            "QPushButton {"
+            "background-color: #2196F3;"
+            "border: none;"
+            "padding: 5px 10px;"
+            "border-radius: 5px;"
+            "color: white;"
+            "}"
+            "QPushButton:checked {"
+            "background-color: #F44336;"
+            "}"
+        )
+
+        # Add the drawing button to the tool pane layout
+        tool_layout.addWidget(self.drawing_button)
+
+        # Connect the drawing button clicked event
+        self.drawing_button.clicked.connect(self.on_drawing_button_clicked)
 
         # Add the measurement button to the tool pane layout
         tool_layout.addWidget(self.measurement_button)
 
         # Create an instance of MeasurementInteractorStyle
-        self.measurement_interactor_style = measurement_interactor.MeasurementInteractorStyle(
-            self.vtk_widget, self
+        self.measurement_interactor_style = (
+            measurement_interactor.MeasurementInteractorStyle(self.vtk_widget, self)
         )
 
         # Connect the measurement button clicked event
@@ -353,3 +378,9 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
             self.annotation_button.setEnabled(True)
+
+    def on_drawing_button_clicked(self):
+        if self.drawing_button.isChecked():
+            self.interactor.SetInteractorStyle(self.drawing_interactor_style)
+        else:
+            self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
