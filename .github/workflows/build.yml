@@ -33,7 +33,7 @@ jobs:
           pipenv run pip install pyinstaller
 
           # Generate the executable using PyInstaller
-          pipenv run pyinstaller --noconfirm --clean -F --specpath ./build --distpath ./dist main.spec
+          pipenv run PyInstaller  main.spec
         # Replace 'myapp.spec' with the name of your spec file.
 
       - name: Upload artifacts
