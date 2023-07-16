@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - main
+  # Trigger the workflow on tag creation
+  release:
+    types:
+      - created
 
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,15 +22,31 @@ jobs:
         with:
           python-version: 3.x  # Specify the desired Python version
 
-      - name: Build and package using Docker
-        uses: docker/build-push-action@v2
-        with:
-          context: ./
-          file: ./Dockerfile
-          push: false  # Set to true if you want to push the Docker image
+      - name: Install pipenv and dependencies
+        run: |
+          pip install pipenv
+          pipenv install --dev  # Add --deploy if you want to ignore development dependencies
+
+      - name: Build Windows Executable
+        run: |
+          # Install PyInstaller (if not already installed)
+          pipenv run pip install pyinstaller
+
+          # Generate the executable using PyInstaller
+          pipenv run pyinstaller --noconfirm --clean -F --specpath ./build --distpath ./dist main.spec
+        # Replace 'myapp.spec' with the name of your spec file.
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: Executable
-          path: ./dist/  # Adjust the path to the location of the generated .exe file
+          path: ./dist/
+
+      # If the event was a tag creation, create a GitHub release
+      - name: Create Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./dist/*
+          tag_name: ${{ github.ref }}
+          body: ${{ github.event.release.body }}

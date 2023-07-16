@@ -9,5 +9,6 @@ pyqt5 = "*"
 fpdf = "*"
 pyinstaller = "*"
 py2exe = "*"
+auto-py-to-exe = "*"
 
 [dev-packages]

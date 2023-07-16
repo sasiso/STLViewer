@@ -2,7 +2,7 @@ import vtk
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QAction, QFileDialog
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtWidgets import QProgressBar
 import measurement_interactor
 from annotation_interactor import AnnotationInteractorStyle

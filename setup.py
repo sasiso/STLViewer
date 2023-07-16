@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 import py2exe
 
 import PyQt5.QtCore
@@ -15,9 +15,10 @@ setup(
             'bundle_files': 1,
             'compressed': True,
             'optimize': 2,
+            'packages': ['PyQt5'],
         }
     },
-    console=[{'script': script_name}],
+    windows=[{'script': script_name}],
     # Use the retrieved 'plugins' directory to locate the required plugins
     data_files=[('platforms', [f'{plugins_dir}/platforms/qwindows.dll'])],
     zipfile=None,
