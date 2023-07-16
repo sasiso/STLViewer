@@ -24,7 +24,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
 
         # Load and render the STL file
-        self.load_stl_file("path_to_stl_file.stl")
+        #self.load_stl_file("path_to_stl_file.stl")
 
         # Create a tool pane widget
         self.tool_pane = QtWidgets.QWidget(self)

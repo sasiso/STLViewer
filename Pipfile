@@ -8,4 +8,6 @@ vtk = "*"
 pyqt5 = "*"
 fpdf = "*"
 pyinstaller = "*"
+py2exe = "*"
+
 [dev-packages]
