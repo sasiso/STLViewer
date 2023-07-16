@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from main_window import MainWindow
 
 if __name__ == "__main__":
-    print ("Welcome!")
+    print ("Welcome to Express Cad Service Viwer")
 
     try:
         import sys
