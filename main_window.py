@@ -29,7 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create a tool pane widget
         self.tool_pane = QtWidgets.QWidget(self)
         self.tool_pane.setMaximumWidth(
-            int(0.2 * self.width())
+            int(0.4 * self.width())
         )  # Set maximum width to 20% of window width
 
         # Group the buttons in a box layout
@@ -187,6 +187,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_timer.setInterval(500)  # Adjust the delay as needed
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_model)
+
+        
         self.setup_interectors()
 
     def setup_interectors(self):
