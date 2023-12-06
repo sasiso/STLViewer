@@ -11,5 +11,7 @@ pyinstaller = "*"
 py2exe = "*"
 auto-py-to-exe = "*"
 numpy-stl = "*"
+imageio = {version = "*", extras = ["ffmpeg"]}
+opencv-python = "*"
 
 [dev-packages]

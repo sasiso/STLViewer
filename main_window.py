@@ -8,12 +8,21 @@ import measurement_interactor
 from annotation_interactor import AnnotationInteractorStyle
 from custom_pdf import CustomPDF
 from drawing_interactor import DrawingInteractorStyle
+import imageio  # Import the imageio library
+from vtk.util import numpy_support
+import numpy
+import cv2
+import os
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Express CAD Service Viewer")
+
+        # Create a temporary folder to store images
+        self.temp_folder = "temp_images"
+        os.makedirs(self.temp_folder, exist_ok=True)
 
         # Create a VTK widget
         self.vtk_widget = QVTKRenderWindowInteractor(self)
@@ -182,6 +191,12 @@ class MainWindow(QtWidgets.QMainWindow):
         save_pdf_action.triggered.connect(self.save_pdf_dialog)
         file_menu.addAction(save_pdf_action)
 
+
+        # Create a button to record video
+        self.record_button = QtWidgets.QPushButton("Record Video")
+        self.record_button.clicked.connect(self.record_video)
+        button_layout.addWidget(self.record_button)
+
         # Create a timer to delay the update
         self.update_timer = QtCore.QTimer()
         self.update_timer.setInterval(500)  # Adjust the delay as needed
@@ -191,6 +206,108 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.setup_interectors()
 
+        # Set up the gold material for the model
+        self.set_gold_material()
+
+        # Initialize video recording variables
+        self.video_writer = None
+        self.frames = []  # Store frames for video
+
+    def set_gold_material(self):
+        actors = self.renderer.GetActors()
+        actors.InitTraversal()
+        actor = actors.GetNextItem()
+        while actor:
+            # Set the actor's color to 22 K gold
+            actor.GetProperty().SetColor(0.91, 0.76, 0.29)  # RGB values for gold
+            actor.GetProperty().SetSpecular(0.5)
+            actor.GetProperty().SetSpecularPower(30)
+            actor.GetProperty().SetAmbient(0.2)
+            actor.GetProperty().SetDiffuse(0.8)
+            actor = actors.GetNextItem()
+
+        # Reset the camera after changing the model color
+        self.renderer.ResetCamera()
+        self.vtk_widget.GetRenderWindow().Render()
+
+    def record_video(self):
+        # Add a timer to control the rotation for video recording
+        self.rotation_timer = QtCore.QTimer()
+        self.rotation_timer.timeout.connect(self.rotate_for_video)
+        self.rotation_angle = 0  # Initial angle for rotation
+        self.counter = 0
+        self.rotation_timer.start(30)  # Adjust the interval as needed
+
+        # Initialize video writer
+        self.video_writer = imageio.get_writer('c:\\temp\\output_video.mp4', fps=30, codec='h264', )
+   #--
+    def capture_current_view(self):
+        # Capture the current frame
+        window_to_image_filter = vtk.vtkWindowToImageFilter()
+        window_to_image_filter.SetInput(self.vtk_widget.GetRenderWindow())
+        window_to_image_filter.Update()
+        vtk_image = window_to_image_filter.GetOutput()
+
+        # Use vtk's functionality to convert the image to a numpy array
+        vtk_array = vtk_image.GetPointData().GetScalars()
+        components = vtk_array.GetNumberOfComponents()
+        height, width, _ = vtk_image.GetDimensions()
+        
+        # Convert VTK array to NumPy array
+        img = numpy_support.vtk_to_numpy(vtk_array).reshape(height, width, components)
+
+        # Ensure that the image has 3 color channels (RGB)
+        if components == 1:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        elif components == 2:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR5652RGB)
+        elif components == 3:
+            img_rgb = img
+        elif components == 4:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
+        else:
+            raise ValueError(f"Unsupported number of image components: {components}")
+
+        # Save the frame as an image in the temporary folder
+        image_path = os.path.join(self.temp_folder, f"frame_{self.rotation_angle}.png")
+        cv2.imwrite(image_path, cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
+   #--
+    
+    def rotate_for_video(self):
+        # Rotate the camera for video recording
+        renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
+        camera = renderer.GetActiveCamera()
+        camera.Azimuth(2)  # Adjust the rotation angle as needed
+        self.rotation_angle += 2
+                # Append the frame to the video writer
+        self.counter +=1
+        spacer = ''
+        if self.counter < 10:
+            spacer = '00'
+        elif self.counter < 100:
+            spacer = '0'
+
+        
+        image_path = os.path.join(self.temp_folder, f"frame_{spacer}{self.counter}.png")
+
+        self.save_current_view_as_image(image_path=image_path)
+
+
+        img_rgb = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        self.video_writer.append_data(img_rgb)
+
+        # Stop recording after 10 seconds (adjust as needed)
+        if self.rotation_angle >= 350:  # 10 seconds at 30 fps
+            import video_capture
+            self.rotation_timer.stop()
+
+            # Close the video writer
+            self.video_writer.close()
+            video_capture.encode()
+
+
+
+            
     def setup_interectors(self):
         # Create an instance of AnnotationInteractorStyle
         self.annotation_interactor_style = AnnotationInteractorStyle(
@@ -314,6 +431,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if file_path:
             self.load_stl_file(file_path)
+            self.set_gold_material()
 
     def load_stl_file(self, file_path):
         # Remove existing actors from the renderer
@@ -349,6 +467,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_timer.start()
 
     def update_model(self):
+        # This function is called after adjusting the camera position
         opacity = self.slider.value() / 100.0
         is_wireframe = self.switch_button.isChecked()
         actors = self.renderer.GetActors()
@@ -362,6 +481,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 actor.GetProperty().SetRepresentationToSurface()
             actor = actors.GetNextItem()
         self.vtk_widget.GetRenderWindow().Render()
+
+        # Capture the current view and save it as an image
+        self.capture_current_view()
 
     def on_measurement_button_clicked(self):
         if self.measurement_button.isChecked():
