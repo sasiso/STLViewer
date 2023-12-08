@@ -8,7 +8,6 @@ vtk = "*"
 pyqt5 = "*"
 fpdf = "*"
 pyinstaller = "*"
-py2exe = "*"
 auto-py-to-exe = "*"
 numpy-stl = "*"
 imageio = {version = "*", extras = ["ffmpeg"]}
