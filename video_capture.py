@@ -7,7 +7,7 @@ def encode():
     input_pattern = "frame_%03d.png"
     output_file = "output.mp4"
     working_directory = os.path.join(os.getcwd(), 'temp_images')
-    ffmpeg_path = os.path.join(working_directory, ffmpeg_path)
+    ffmpeg_path = os.path.join(os.path.dirname(__file__), 'ffmpeg.exe')
 
     # Build the FFmpeg command
     ffmpeg_command = [

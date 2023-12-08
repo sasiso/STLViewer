@@ -8,7 +8,7 @@ import measurement_interactor
 from annotation_interactor import AnnotationInteractorStyle
 from custom_pdf import CustomPDF
 from drawing_interactor import DrawingInteractorStyle
-import imageio  # Import the imageio library
+
 from vtk.util import numpy_support
 import numpy
 import cv2
@@ -237,9 +237,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rotation_angle = 0  # Initial angle for rotation
         self.counter = 0
         self.rotation_timer.start(30)  # Adjust the interval as needed
-
-        # Initialize video writer
-        self.video_writer = imageio.get_writer('c:\\temp\\output_video.mp4', fps=30, codec='h264', )
+        
    #--
     def capture_current_view(self):
         # Capture the current frame
@@ -293,16 +291,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.save_current_view_as_image(image_path=image_path)
 
 
-        img_rgb = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        self.video_writer.append_data(img_rgb)
+               
 
         # Stop recording after 10 seconds (adjust as needed)
         if self.rotation_angle >= 350:  # 10 seconds at 30 fps
             import video_capture
             self.rotation_timer.stop()
-
-            # Close the video writer
-            self.video_writer.close()
             video_capture.encode()
 
 

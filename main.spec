@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
+import cv2
 block_cipher = None
 
 
@@ -8,8 +8,8 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('annotation_interactor.py', '.'), ('custom_pdf.py', '.'), ('drawing_interactor.py', '.'), ('main_window.py', '.'), ('measurement_interactor.py', '.')],
-    hiddenimports=['PyQt5', 'fpdf', 'vtk', 'vtkmodules'],
+    datas=[('ffmpeg.exe', '.'),('annotation_interactor.py', '.'), ('custom_pdf.py', '.'), ('drawing_interactor.py', '.'), ('main_window.py', '.'), ('measurement_interactor.py', '.')],
+    hiddenimports=['cv2','PyQt5', 'fpdf', 'vtk', 'vtkmodules', 'vtk.util.numpy_support','vtkmodules.all','vtkmodules.qt.QVTKRenderWindowInteractor','vtkmodules.util','vtkmodules.numpy_interface', 'vtkmodules.numpy_interface.dataset_adapter'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
