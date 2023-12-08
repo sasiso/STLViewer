@@ -1,8 +1,8 @@
 import numpy as np
 from stl import mesh
-
+import sys
 # Load the STL file
-stl_file = mesh.Mesh.from_file('1351.stl')
+stl_file = mesh.Mesh.from_file(sys.argv[1])
 
 # Calculate the volume, center of mass, and inertia tensor
 volume, _, _ = stl_file.get_mass_properties()
