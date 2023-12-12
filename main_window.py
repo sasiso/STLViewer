@@ -23,6 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create a temporary folder to store images
         self.temp_folder = "temp_images"
         os.makedirs(self.temp_folder, exist_ok=True)
+        self.file_path = None
 
         # Create a VTK widget
         self.vtk_widget = QVTKRenderWindowInteractor(self)
@@ -297,7 +298,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.rotation_angle >= 350:  # 10 seconds at 30 fps
             import video_capture
             self.rotation_timer.stop()
-            video_capture.encode()
+            file_name_without_extension, file_extension = os.path.splitext(os.path.basename(self.file_path))
+
+            video_capture.encode(file_name_without_extension +'.mp4')
 
 
 
@@ -419,12 +422,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_file(self):
         file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(
+        self.file_path, _ = file_dialog.getOpenFileName(
             self, "Open STL File", "", "STL Files (*.stl)"
         )
 
-        if file_path:
-            self.load_stl_file(file_path)
+        if self.file_path:
+            self.load_stl_file(self.file_path)
             self.set_gold_material()
 
     def load_stl_file(self, file_path):

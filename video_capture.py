@@ -1,11 +1,20 @@
 import os
-def encode():
+import subprocess
+
+def open_folder_in_explorer(folder_path):
+    try:
+        subprocess.Popen(['explorer', folder_path], shell=True)
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def encode(file_name=None):
 
     import subprocess
 
     ffmpeg_path = "ffmpeg.exe"
     input_pattern = "frame_%03d.png"
-    output_file = "output.mp4"
+    output_file = file_name if file_name else "output.mp4"
     working_directory = os.path.join(os.getcwd(), 'temp_images')
     ffmpeg_path = os.path.join(os.path.dirname(__file__), 'ffmpeg.exe')
 
@@ -25,5 +34,7 @@ def encode():
     try:
         subprocess.run(ffmpeg_command, check=True, cwd=working_directory)
         print("Conversion completed successfully.")
+        
+        open_folder_in_explorer(working_directory)
     except subprocess.CalledProcessError as e:
         print(f"Error during conversion: {e}")
