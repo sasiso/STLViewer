@@ -478,8 +478,6 @@ class MainWindow(QtWidgets.QMainWindow):
             actor = actors.GetNextItem()
         self.vtk_widget.GetRenderWindow().Render()
 
-        # Capture the current view and save it as an image
-        self.capture_current_view()
 
     def on_measurement_button_clicked(self):
         if self.measurement_button.isChecked():
