@@ -4,14 +4,6 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QAction, QFileDialog
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtWidgets import QProgressBar
-import measurement_interactor
-from annotation_interactor import AnnotationInteractorStyle
-from custom_pdf import CustomPDF
-from drawing_interactor import DrawingInteractorStyle
-
-from vtk.util import numpy_support
-import numpy
-import cv2
 import os
 
 
@@ -241,6 +233,9 @@ class MainWindow(QtWidgets.QMainWindow):
         
    #--
     def capture_current_view(self):
+        from vtk.util import numpy_support
+        import cv2
+
         # Capture the current frame
         window_to_image_filter = vtk.vtkWindowToImageFilter()
         window_to_image_filter.SetInput(self.vtk_widget.GetRenderWindow())
@@ -306,6 +301,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
             
     def setup_interectors(self):
+        from annotation_interactor import AnnotationInteractorStyle
+        from drawing_interactor import DrawingInteractorStyle
+        import measurement_interactor
         # Create an instance of AnnotationInteractorStyle
         self.annotation_interactor_style = AnnotationInteractorStyle(
             self.vtk_widget, self
@@ -350,6 +348,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vtk_widget.GetRenderWindow().Render()
 
     def save_pdf_with_annotations(self, file_path):
+        from custom_pdf import CustomPDF
         try:
             pdf = CustomPDF(orientation="L", unit="mm", format="A4")
             pdf.set_auto_page_break(auto=True, margin=15)
