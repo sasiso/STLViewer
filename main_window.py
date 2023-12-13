@@ -6,6 +6,8 @@ from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtWidgets import QProgressBar
 import os
 
+from weight import get_weight_text
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -17,6 +19,20 @@ class MainWindow(QtWidgets.QMainWindow):
         os.makedirs(self.temp_folder, exist_ok=True)
         self.file_path = None
 
+                # Additional variables for color and rotation
+        self.color_index = 0
+        self.colors = [
+            (0.91, 0.76, 0.29),  # 18K gold
+            (0.98, 0.84, 0.65),  # 14K gold
+            (0.81, 0.71, 0.23),  # 9K gold
+            (0.75, 0.75, 0.75),  # Silver
+            (0.68, 0.68, 0.68),  # Platinum
+            (0.86, 0.58, 0.58),  # Rose gold
+        ]
+        self.color_index = 0
+        self.metal_color =  (0.91, 0.76, 0.29) 
+
+
         # Create a VTK widget
         self.vtk_widget = QVTKRenderWindowInteractor(self)
 
@@ -24,7 +40,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.renderer = vtk.vtkRenderer()
         self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = self.vtk_widget.GetRenderWindow().GetInteractor()
-
+        # Connect the keypress event
+        self.interactor.AddObserver("KeyPressEvent", self.on_key_press)
         # Load and render the STL file
         #self.load_stl_file("path_to_stl_file.stl")
 
@@ -184,6 +201,15 @@ class MainWindow(QtWidgets.QMainWindow):
         save_pdf_action.triggered.connect(self.save_pdf_dialog)
         file_menu.addAction(save_pdf_action)
 
+           # Add text actor to the renderer
+        self.text_actor = vtk.vtkTextActor()
+        self.text_actor.SetTextScaleModeToNone()
+        self.text_actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
+        self.text_actor.SetPosition(0.8, 0.8)  # Adjust the position as needed
+        self.text_actor.GetTextProperty().SetColor(0.0, 0.0, 1.0)  # Blue color
+        self.text_actor.GetTextProperty().SetFontSize(20)
+        self.renderer.AddActor(self.text_actor)
+
 
         # Create a button to record video
         self.record_button = QtWidgets.QPushButton("Record Video")
@@ -206,13 +232,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.video_writer = None
         self.frames = []  # Store frames for video
 
+    def on_key_press(self, obj, event):
+            key = self.interactor.GetKeySym()
+
+            if key == "Down":
+               # Increment the color index
+                self.color_index = (self.color_index + 1) % len(self.colors)
+                self.set_gold_material()
+
     def set_gold_material(self):
         actors = self.renderer.GetActors()
         actors.InitTraversal()
         actor = actors.GetNextItem()
         while actor:
             # Set the actor's color to 22 K gold
-            actor.GetProperty().SetColor(0.91, 0.76, 0.29)  # RGB values for gold
+            actor.GetProperty().SetColor(self.colors[self.color_index])  # RGB values for gold
             actor.GetProperty().SetSpecular(0.5)
             actor.GetProperty().SetSpecularPower(30)
             actor.GetProperty().SetAmbient(0.2)
@@ -426,8 +460,15 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         if self.file_path:
+            w = get_weight_text(self.file_path)
+            text = ''
+            for key, value in w.items():
+               text += key + ": {:.2f}".format(value) + '\n'
+
+            self.text_actor.SetInput(text)
             self.load_stl_file(self.file_path)
             self.set_gold_material()
+
 
     def load_stl_file(self, file_path):
         # Remove existing actors from the renderer
@@ -451,6 +492,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Add the actor to the renderer
         self.renderer.AddActor(actor)
+        self.renderer.AddActor(self.text_actor)
         self.renderer.ResetCamera()
         self.vtk_widget.GetRenderWindow().Render()
 
