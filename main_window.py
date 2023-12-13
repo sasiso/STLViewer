@@ -247,10 +247,13 @@ class MainWindow(QtWidgets.QMainWindow):
         while actor:
             # Set the actor's color to 22 K gold
             actor.GetProperty().SetColor(self.colors[self.color_index])  # RGB values for gold
-            actor.GetProperty().SetSpecular(0.5)
-            actor.GetProperty().SetSpecularPower(30)
+            actor.GetProperty().SetSpecular(1.0)
+            actor.GetProperty().SetSpecularPower(50)
             actor.GetProperty().SetAmbient(0.2)
             actor.GetProperty().SetDiffuse(0.8)
+            
+            # Enable backface culling
+            actor.GetProperty().BackfaceCullingOn()
             actor = actors.GetNextItem()
 
         # Reset the camera after changing the model color
@@ -458,14 +461,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_path, _ = file_dialog.getOpenFileName(
             self, "Open STL File", "", "STL Files (*.stl)"
         )
-
+ 
         if self.file_path:
-            w = get_weight_text(self.file_path)
-            text = ''
-            for key, value in w.items():
-               text += key + ": {:.2f}".format(value) + '\n'
+            if False:
+                w = get_weight_text(self.file_path)
+                text = ''
+                for key, value in w.items():
+                    text += key + ": {:.2f}".format(value) + '\n'
 
-            self.text_actor.SetInput(text)
+                self.text_actor.SetInput(text)
             self.load_stl_file(self.file_path)
             self.set_gold_material()
 
