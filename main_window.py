@@ -266,7 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rotation_timer.timeout.connect(self.rotate_for_video)
         self.rotation_angle = 0  # Initial angle for rotation
         self.counter = 0
-        self.rotation_timer.start(30)  # Adjust the interval as needed
+        self.rotation_timer.start(10)  # Adjust the interval as needed
         
    #--
     def capture_current_view(self):
@@ -308,18 +308,19 @@ class MainWindow(QtWidgets.QMainWindow):
         # Rotate the camera for video recording
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
+        speed = 3
             
         if self.rotation_angle < 359:
             # Rotate around Y-axis
-            camera.Azimuth(1)  # Adjust the rotation angle as needed       
+            camera.Azimuth(speed)  # Adjust the rotation angle as needed       
             
         else:
             # Rotate around X-axis
             camera.OrthogonalizeViewUp()
-            camera.Elevation(1)
+            camera.Elevation(speed)
         
 
-        self.rotation_angle += 1
+        self.rotation_angle += speed
         # Append the frame to the video writer
         self.counter +=1
         spacer = ''
