@@ -308,26 +308,31 @@ class MainWindow(QtWidgets.QMainWindow):
         # Rotate the camera for video recording
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
-        camera.Azimuth(2)  # Adjust the rotation angle as needed
-        self.rotation_angle += 2
-                # Append the frame to the video writer
+            
+        if self.rotation_angle < 359:
+            # Rotate around Y-axis
+            camera.Azimuth(1)  # Adjust the rotation angle as needed       
+            
+        else:
+            # Rotate around X-axis
+            camera.OrthogonalizeViewUp()
+            camera.Elevation(1)
+        
+
+        self.rotation_angle += 1
+        # Append the frame to the video writer
         self.counter +=1
         spacer = ''
         if self.counter < 10:
             spacer = '00'
         elif self.counter < 100:
             spacer = '0'
-
         
         image_path = os.path.join(self.temp_folder, f"frame_{spacer}{self.counter}.png")
-
-        self.save_current_view_as_image(image_path=image_path)
-
-
-               
+        self.save_current_view_as_image(image_path=image_path)               
 
         # Stop recording after 10 seconds (adjust as needed)
-        if self.rotation_angle >= 350:  # 10 seconds at 30 fps
+        if self.rotation_angle >= 359*2:  # 10 seconds at 30 fps
             import video_capture
             self.rotation_timer.stop()
             file_name_without_extension, file_extension = os.path.splitext(os.path.basename(self.file_path))
