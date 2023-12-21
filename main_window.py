@@ -213,6 +213,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.text_actor.GetTextProperty().SetFontSize(20)
         self.renderer.AddActor(self.text_actor)
 
+            # Create a text actor for the watermark
+        self.watermark_actor = vtk.vtkTextActor()
+        self.watermark_actor.SetTextScaleModeToNone()
+        self.watermark_actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
+        self.watermark_actor.SetPosition(0.75, 0.02)  # Adjust the position as needed
+        self.watermark_actor.GetTextProperty().SetColor(0.5, 0.5, 0.5)  # Gray color
+        self.watermark_actor.GetTextProperty().SetFontSize(20)
+        self.watermark_actor.SetInput("Express CAD Service\nWhatsApp: +61-410168567\nEmail:expresscadservice@gmail.com")
+        self.renderer.AddActor(self.watermark_actor)
+
         # Create a button to record video
         self.record_button = QtWidgets.QPushButton("Record Video")
         self.record_button.clicked.connect(self.record_video)
@@ -545,6 +555,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Add the actor to the renderer
         self.renderer.AddActor(self._image_actor)
         self.renderer.AddActor(self.text_actor)
+        self.renderer.AddActor(self.watermark_actor)
         self._handle_size_annotations()
         self.renderer.ResetCamera()
 
