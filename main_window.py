@@ -5,21 +5,26 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtWidgets import QProgressBar
 import os
+from bound_rect import draw_bound_rect
 
 from weight import get_weight_text
-
+from PyQt5.QtWidgets import QCheckBox
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Express CAD Service Viewer")
+        self.rectangle_actor = None
+        self.size_annotation_text = None
+        self._image_actor = None
+        self.reader = None
 
         # Create a temporary folder to store images
         self.temp_folder = "temp_images"
         os.makedirs(self.temp_folder, exist_ok=True)
         self.file_path = None
 
-                # Additional variables for color and rotation
+        # Additional variables for color and rotation
         self.color_index = 0
         self.colors = [
             (0.91, 0.76, 0.29),  # 18K gold
@@ -30,8 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
             (0.86, 0.58, 0.58),  # Rose gold
         ]
         self.color_index = 0
-        self.metal_color =  (0.91, 0.76, 0.29) 
-
+        self.metal_color = (0.91, 0.76, 0.29)
 
         # Create a VTK widget
         self.vtk_widget = QVTKRenderWindowInteractor(self)
@@ -43,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Connect the keypress event
         self.interactor.AddObserver("KeyPressEvent", self.on_key_press)
         # Load and render the STL file
-        #self.load_stl_file("path_to_stl_file.stl")
+        # self.load_stl_file("path_to_stl_file.stl")
 
         # Create a tool pane widget
         self.tool_pane = QtWidgets.QWidget(self)
@@ -156,7 +160,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Set the layout for the tool pane
         self.tool_pane.setLayout(button_layout)
-        
 
         # Create a frame to hold the VTK widget and tool pane
         frame = QtWidgets.QFrame(self)
@@ -185,7 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.drawing_button.clicked.connect(self.on_drawing_button_clicked)
 
         # Connect the measurement button clicked event
-        self.measurement_button.clicked.connect(self.on_measurement_button_clicked)        
+        self.measurement_button.clicked.connect(self.on_measurement_button_clicked)
 
         # Create a File menu
         file_menu = self.menuBar().addMenu("File")
@@ -201,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         save_pdf_action.triggered.connect(self.save_pdf_dialog)
         file_menu.addAction(save_pdf_action)
 
-           # Add text actor to the renderer
+        # Add text actor to the renderer
         self.text_actor = vtk.vtkTextActor()
         self.text_actor.SetTextScaleModeToNone()
         self.text_actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
@@ -210,11 +213,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.text_actor.GetTextProperty().SetFontSize(20)
         self.renderer.AddActor(self.text_actor)
 
-
         # Create a button to record video
         self.record_button = QtWidgets.QPushButton("Record Video")
         self.record_button.clicked.connect(self.record_video)
         button_layout.addWidget(self.record_button)
+
+               # Create a checkbox for draw rectangle
+        self.draw_rect_checkbox = QCheckBox("Display Size", self.tool_pane)
+        self.draw_rect_checkbox.setChecked(True)
+        self.draw_rect_checkbox.stateChanged.connect(self.on_draw_rect_checkbox_changed)
+        button_layout.addWidget(self.draw_rect_checkbox)
 
         # Create a timer to delay the update
         self.update_timer = QtCore.QTimer()
@@ -222,7 +230,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_model)
 
-        
         self.setup_interectors()
 
         # Set up the gold material for the model
@@ -232,29 +239,56 @@ class MainWindow(QtWidgets.QMainWindow):
         self.video_writer = None
         self.frames = []  # Store frames for video
 
-    def on_key_press(self, obj, event):
-            key = self.interactor.GetKeySym()
+    def add_annoation_actor(self, remove=False):
+        if remove:
+            for a in self.size_annotation_text:
+                self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer().RemoveActor(a)
+            self.size_annotation_text = None    
+        else:
+            for a in self.size_annotation_text:
+                self.renderer.AddActor(a)
 
-            if key == "Down":
-               # Increment the color index
-                self.color_index = (self.color_index + 1) % len(self.colors)
-                self.set_gold_material()
+    def on_draw_rect_checkbox_changed(self, state):
+        if self.rectangle_actor is None:
+            return
+        
+        self.draw_rect = state == QtCore.Qt.Checked
+        if not self.draw_rect:
+            self.renderer.RemoveActor(self.rectangle_actor)
+            # Remove text annotation if checkbox is unchecked
+            self.remove_annotations()
+        else:
+            self._handle_size_annotations()
+            self.vtk_widget.GetRenderWindow().Render()    
+
+    def remove_annotations(self):             
+        self.add_annoation_actor(remove=True)
+        self.vtk_widget.GetRenderWindow().Render()        
+
+    def on_key_press(self, obj, event):
+        key = self.interactor.GetKeySym()
+
+        if key == "Down":
+            # Increment the color index
+            self.color_index = (self.color_index + 1) % len(self.colors)
+            self.set_gold_material()
 
     def set_gold_material(self):
-        actors = self.renderer.GetActors()
-        actors.InitTraversal()
-        actor = actors.GetNextItem()
-        while actor:
-            # Set the actor's color to 22 K gold
-            actor.GetProperty().SetColor(self.colors[self.color_index])  # RGB values for gold
-            actor.GetProperty().SetSpecular(1.0)
-            actor.GetProperty().SetSpecularPower(50)
-            actor.GetProperty().SetAmbient(0.2)
-            actor.GetProperty().SetDiffuse(0.8)
-            
-            # Enable backface culling
-            actor.GetProperty().BackfaceCullingOn()
-            actor = actors.GetNextItem()
+        actor = self._image_actor
+        if actor is None:
+            return
+
+        # Set the actor's color to 22 K gold
+        actor.GetProperty().SetColor(
+            self.colors[self.color_index]
+        )  # RGB values for gold
+        actor.GetProperty().SetSpecular(1.0)
+        actor.GetProperty().SetSpecularPower(50)
+        actor.GetProperty().SetAmbient(0.2)
+        actor.GetProperty().SetDiffuse(0.8)
+
+        # Enable backface culling
+        actor.GetProperty().BackfaceCullingOn()
 
         # Reset the camera after changing the model color
         self.renderer.ResetCamera()
@@ -267,8 +301,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rotation_angle = 0  # Initial angle for rotation
         self.counter = 0
         self.rotation_timer.start(10)  # Adjust the interval as needed
-        
-   #--
+
+    # --
     def capture_current_view(self):
         from vtk.util import numpy_support
         import cv2
@@ -283,7 +317,7 @@ class MainWindow(QtWidgets.QMainWindow):
         vtk_array = vtk_image.GetPointData().GetScalars()
         components = vtk_array.GetNumberOfComponents()
         height, width, _ = vtk_image.GetDimensions()
-        
+
         # Convert VTK array to NumPy array
         img = numpy_support.vtk_to_numpy(vtk_array).reshape(height, width, components)
 
@@ -302,51 +336,52 @@ class MainWindow(QtWidgets.QMainWindow):
         # Save the frame as an image in the temporary folder
         image_path = os.path.join(self.temp_folder, f"frame_{self.rotation_angle}.png")
         cv2.imwrite(image_path, cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
-   #--
-    
+
+    # --
+
     def rotate_for_video(self):
         # Rotate the camera for video recording
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
         speed = 3
-            
+
         if self.rotation_angle < 359:
             # Rotate around Y-axis
-            camera.Azimuth(speed)  # Adjust the rotation angle as needed       
-            
+            camera.Azimuth(speed)  # Adjust the rotation angle as needed
+
         else:
             # Rotate around X-axis
             camera.OrthogonalizeViewUp()
             camera.Elevation(speed)
-        
 
         self.rotation_angle += speed
         # Append the frame to the video writer
-        self.counter +=1
-        spacer = ''
+        self.counter += 1
+        spacer = ""
         if self.counter < 10:
-            spacer = '00'
+            spacer = "00"
         elif self.counter < 100:
-            spacer = '0'
-        
+            spacer = "0"
+
         image_path = os.path.join(self.temp_folder, f"frame_{spacer}{self.counter}.png")
-        self.save_current_view_as_image(image_path=image_path)               
+        self.save_current_view_as_image(image_path=image_path)
 
         # Stop recording after 10 seconds (adjust as needed)
-        if self.rotation_angle >= 359*2:  # 10 seconds at 30 fps
+        if self.rotation_angle >= 359 * 2:  # 10 seconds at 30 fps
             import video_capture
+
             self.rotation_timer.stop()
-            file_name_without_extension, file_extension = os.path.splitext(os.path.basename(self.file_path))
+            file_name_without_extension, file_extension = os.path.splitext(
+                os.path.basename(self.file_path)
+            )
 
-            video_capture.encode(file_name_without_extension +'.mp4')
+            video_capture.encode(file_name_without_extension + ".mp4")
 
-
-
-            
     def setup_interectors(self):
         from annotation_interactor import AnnotationInteractorStyle
         from drawing_interactor import DrawingInteractorStyle
         import measurement_interactor
+
         # Create an instance of AnnotationInteractorStyle
         self.annotation_interactor_style = AnnotationInteractorStyle(
             self.vtk_widget, self
@@ -392,6 +427,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def save_pdf_with_annotations(self, file_path):
         from custom_pdf import CustomPDF
+
         try:
             pdf = CustomPDF(orientation="L", unit="mm", format="A4")
             pdf.set_auto_page_break(auto=True, margin=15)
@@ -467,43 +503,50 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_path, _ = file_dialog.getOpenFileName(
             self, "Open STL File", "", "STL Files (*.stl)"
         )
- 
+
         if self.file_path:
             if False:
                 w = get_weight_text(self.file_path)
-                text = ''
+                text = ""
                 for key, value in w.items():
-                    text += key + ": {:.2f}".format(value) + '\n'
+                    text += key + ": {:.2f}".format(value) + "\n"
 
                 self.text_actor.SetInput(text)
             self.load_stl_file(self.file_path)
             self.set_gold_material()
 
+    def _handle_size_annotations(self):
+        self.rectangle_actor, self.size_annotation_text = draw_bound_rect(self.reader, self.renderer)
+        self.renderer.AddActor(self.rectangle_actor)
+        self.add_annoation_actor()
+        self.draw_rect_checkbox.setChecked(True)
 
     def load_stl_file(self, file_path):
         # Remove existing actors from the renderer
         self.renderer.RemoveAllViewProps()
 
         # Create a reader and load the STL file
-        reader = vtk.vtkSTLReader()
-        reader.SetFileName(file_path)
-        reader.Update()
+        self.reader = vtk.vtkSTLReader()
+        self.reader.SetFileName(file_path)
+        self.reader.Update()
 
         # Get the STL mesh
-        stl_mesh = reader.GetOutput()
-
+        stl_mesh = self.reader.GetOutput()
+                
         # Create a mapper
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(stl_mesh)
 
         # Create an actor
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
+        self._image_actor = vtk.vtkActor()
+        self._image_actor.SetMapper(mapper)
 
         # Add the actor to the renderer
-        self.renderer.AddActor(actor)
+        self.renderer.AddActor(self._image_actor)
         self.renderer.AddActor(self.text_actor)
+        self._handle_size_annotations()
         self.renderer.ResetCamera()
+
         self.vtk_widget.GetRenderWindow().Render()
 
     def on_slider_value_changed(self, value):
@@ -529,7 +572,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 actor.GetProperty().SetRepresentationToSurface()
             actor = actors.GetNextItem()
         self.vtk_widget.GetRenderWindow().Render()
-
 
     def on_measurement_button_clicked(self):
         if self.measurement_button.isChecked():
