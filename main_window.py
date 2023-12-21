@@ -238,6 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Initialize video recording variables
         self.video_writer = None
         self.frames = []  # Store frames for video
+        self.vtk_widget.GetRenderWindow().Render()
 
     def add_annoation_actor(self, remove=False):
         if remove:
