@@ -6,6 +6,7 @@ from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtWidgets import QProgressBar
 import os
 from bound_rect import draw_bound_rect
+from live_measurements import LiveMeasurements
 
 from weight import get_weight_text
 from PyQt5.QtWidgets import QCheckBox
@@ -394,6 +395,9 @@ class MainWindow(QtWidgets.QMainWindow):
             measurement_interactor.MeasurementInteractorStyle(self.vtk_widget, self)
         )
 
+        self.live_measurment_intereactor = LiveMeasurements(self.vtk_widget, self)
+        
+
     def update_progress(self, value):
         self.progress_bar.setValue(int(value))
 
@@ -493,7 +497,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def on_annotation_button_clicked(self):
         if self.annotation_button.isChecked():
             self.annotation_text_edit.setEnabled(True)
-            self.interactor.SetInteractorStyle(self.annotation_interactor_style)
+            self.interactor.SetInteractorStyle(self.live_measurment_intereactor)
         else:
             self.annotation_text_edit.setEnabled(False)
             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
@@ -540,6 +544,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create an actor
         self._image_actor = vtk.vtkActor()
         self._image_actor.SetMapper(mapper)
+        self.live_measurment_intereactor.set_mapper(mapper)
 
         # Add the actor to the renderer
         self.renderer.AddActor(self._image_actor)
