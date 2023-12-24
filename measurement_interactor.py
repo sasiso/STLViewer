@@ -77,7 +77,7 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         return round(distance_mm, 2)
 
 
-    def add_measurement_text(self, position, distance_mm, c=(1.0, 1.0, 0)):
+    def add_measurement_text(self, position, distance_mm, c=(1.0, 0.0, 0)):
         measurement_text = f"{distance_mm:.2f} mm"
         measurement_actor = vtk.vtkBillboardTextActor3D()
         measurement_actor.SetInput(measurement_text)
@@ -164,7 +164,7 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
             midpoint = (
                 (self.measurement_start_position[0] + position[0]) / 2,
                 (self.measurement_start_position[1] + position[1]) / 2,
-                (self.measurement_start_position[2] + position[2]) / 2,
+                 position[2],
             )
             self.add_measurement_text(midpoint, distance_mm)
             self.measurement_active = False
