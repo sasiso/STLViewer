@@ -146,6 +146,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.annotation_text_edit.setStyleSheet(
             "QTextEdit {" "border: 1px solid gray;" "border-radius: 5px;" "}"
         )
+        self.annotation_text_edit.setPlaceholderText("Click annotion button, add text here and click on model")  # Set your watermark hint
+
         self.progress_bar = QProgressBar(self.tool_pane)
         # Add buttons to the button layout
         button_layout.addWidget(self.slider)
@@ -503,6 +505,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def on_annotation_button_clicked(self):
         if self.annotation_button.isChecked():
+            self._handle_buttons_states(annotate=True)
             self.annotation_text_edit.setEnabled(True)
             self.interactor.SetInteractorStyle(self.annotation_interactor_style)
         else:
@@ -568,6 +571,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def on_switch_button_clicked(self):
         # Restart the update timer
         self.update_timer.start()
+        if self.switch_button.isChecked():
+            self._handle_buttons_states(wireframe=True)
 
     def update_model(self):
         # This function is called after adjusting the camera position
@@ -587,14 +592,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def on_measurement_button_clicked(self):
         if self.measurement_button.isChecked():
-            self.interactor.SetInteractorStyle(self.measurement_interactor_style)
-            self.annotation_button.setEnabled(False)
+            self._handle_buttons_states(measurement=True)
+            self.interactor.SetInteractorStyle(self.measurement_interactor_style)       
         else:
             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
-            self.annotation_button.setEnabled(True)
+           
+
+    def _handle_buttons_states(self, drawing=False, measurement=False, 
+                               wireframe=False,annotate=False):
+        self.drawing_button.setChecked(drawing)
+        self.measurement_button.setChecked(measurement)
+        self.switch_button.setChecked(wireframe)
+        self.annotation_button.setChecked(annotate)
 
     def on_drawing_button_clicked(self):
         if self.drawing_button.isChecked():
+            self._handle_buttons_states(drawing=True)
             self.interactor.SetInteractorStyle(self.drawing_interactor_style)
+
         else:
             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())

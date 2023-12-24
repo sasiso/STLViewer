@@ -2,6 +2,7 @@ import vtk
 from collections import defaultdict
 import math
 import random
+import time
 
 class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def __init__(self, vtk_widget, window):
@@ -20,6 +21,7 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         self.dynamic_line_actor = None  # Line actor for the dynamic line
         self.dynamic_line_source = None  # Line source for the dynamic line
         self.dynamic_line_color = (1.0, 0.0, 0.0)  # Color of the dynamic line (e.g., red)
+        self.last_update = time.time()
 
 
     def _left_button_press_event(self, obj, event):
@@ -44,19 +46,6 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
             self.handle_measurement(picked_position)
 
         self.vtk_widget.GetRenderWindow().Render()
-
-    def _handle_measurement(self, position):
-        if not self.measurement_active:
-            self.measurement_start_position = position
-            self.measurement_active = True
-        else:
-            self.measurement_active = False
-            distance_mm = self.calculate_distance(
-                self.measurement_start_position, position
-            )
-            c = self.random_color()
-            self.add_measurement_text(position, distance_mm, c)
-            self.draw_line_with_points(self.measurement_start_position, position, c)
 
     def draw_line(self, start_position, end_position):
         # Create a line between the start and end position
@@ -88,13 +77,13 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         return round(distance_mm, 2)
 
 
-    def add_measurement_text(self, position, distance_mm, c):
+    def add_measurement_text(self, position, distance_mm, c=(1.0, 1.0, 0)):
         measurement_text = f"{distance_mm:.2f} mm"
         measurement_actor = vtk.vtkBillboardTextActor3D()
         measurement_actor.SetInput(measurement_text)
         measurement_actor.SetPosition(position[0], position[1], position[2] + 1.0)
         measurement_actor.GetTextProperty().SetColor(c)  # Green color
-        measurement_actor.GetTextProperty().SetFontSize(40)  # Adjust font size as needed
+        measurement_actor.GetTextProperty().SetFontSize(16)  # Adjust font size as needed
         measurement_actor.SetVisibility(True)
 
         self.measurement_actors[(position, distance_mm)].append(measurement_actor)
@@ -166,15 +155,23 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def handle_measurement(self, position):
         if not self.measurement_active:
             self.measurement_start_position = position
-            self.measurement_active = True
+            self.measurement_active = True                           
+          
         else:
-            self.measurement_active = False
             distance_mm = self.calculate_distance(
                 self.measurement_start_position, position
             )
-            c = self.random_color()
-            self.add_measurement_text(position, distance_mm, c)
-            self.draw_line_with_points(self.measurement_start_position, position, c)
+            midpoint = (
+                (self.measurement_start_position[0] + position[0]) / 2,
+                (self.measurement_start_position[1] + position[1]) / 2,
+                (self.measurement_start_position[2] + position[2]) / 2,
+            )
+            self.add_measurement_text(midpoint, distance_mm)
+            self.measurement_active = False
+
+        c = self.random_color()
+            
+        self.draw_line_with_points(self.measurement_start_position, position, c)
 
     def draw_line_with_points(self, start_position, end_position, c):
         self._add_saphere(start_position, end_position)
@@ -200,6 +197,10 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         # Render the scene
         self.vtk_widget.GetRenderWindow().Render()
     def on_mouse_move(self, obj, event):
+        if time.time() - self.last_update < 0.1:
+            return
+        self.last_update = time.time()
+
         if self.measurement_active and self.dynamic_line_source:
             interactor = self.GetInteractor()
             mouse_position = interactor.GetEventPosition()
