@@ -31,3 +31,7 @@ def get_weight_text(file_name):
     rv['21k'] = weight_21k
     rv['22K'] =  weight_22k
     return rv   
+    
+if __name__ == "__main__":
+    import sys
+    print(get_weight_text(sys.argv[1]))

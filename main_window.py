@@ -219,10 +219,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.watermark_actor = vtk.vtkTextActor()
         self.watermark_actor.SetTextScaleModeToNone()
         self.watermark_actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
-        self.watermark_actor.SetPosition(0.75, 0.02)  # Adjust the position as needed
+        self.watermark_actor.SetPosition(0.05, 0.02)  # Adjust the position as needed
         self.watermark_actor.GetTextProperty().SetColor(0.5, 0.5, 0.5)  # Gray color
         self.watermark_actor.GetTextProperty().SetFontSize(20)
-        self.watermark_actor.SetInput("Express CAD Service\nWhatsApp: +61-410168567\nEmail:expresscadservice@gmail.com")
+
+        self._add_logo()
+        
         self.renderer.AddActor(self.watermark_actor)
 
         # Create a button to record video
@@ -261,6 +263,21 @@ class MainWindow(QtWidgets.QMainWindow):
             for a in self.size_annotation_text:
                 self.renderer.AddActor(a)
 
+    def _add_logo(self):
+        # Get the path to the branding.txt file in the same directory as the executable
+        branding_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'branding.txt')
+
+        if os.path.exists(branding_file_path):
+            # Read the first three lines from branding.txt
+            with open(branding_file_path, 'r') as file:
+                lines = file.readlines()[:3]
+                text = ''.join(lines)
+        else:
+            # Use hardcoded values if branding.txt doesn't exist
+            text = "Express CAD Service\nWhatsApp: +61-410168567\nEmail: expresscadservice@gmail.com"
+
+        # Assuming there is a method like SetInputText for setting input in the watermark_actor
+        self.watermark_actor.SetInput(text)
     def on_draw_rect_checkbox_changed(self, state):
         if self.rectangle_actor is None:
             return
