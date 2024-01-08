@@ -11,8 +11,7 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         # Register observer for the MouseMoveEvent
         self.AddObserver("MouseMoveEvent", self.on_mouse_move)
         self.vtk_widget = vtk_widget
-        self.measurement_text = ""
-        self.measurement_actors = defaultdict(list)
+        self.measurement_text = ""        
         self.measurement_start_position = None
         self.measurement_active = False
         self.scaling_factor = 1.0  # Set the scaling factor here
@@ -22,6 +21,7 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
         self.dynamic_line_source = None  # Line source for the dynamic line
         self.dynamic_line_color = (1.0, 0.0, 0.0)  # Color of the dynamic line (e.g., red)
         self.last_update = time.time()
+        self.measurement_actor = None
 
 
     def _left_button_press_event(self, obj, event):
@@ -78,19 +78,14 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
 
 
     def add_measurement_text(self, position, distance_mm, c=(1.0, 0.0, 0)):
-        measurement_text = f"{distance_mm:.2f} mm"
-        measurement_actor = vtk.vtkBillboardTextActor3D()
-        measurement_actor.SetInput(measurement_text)
-        measurement_actor.SetPosition(position[0], position[1], position[2] + 1.0)
-        measurement_actor.GetTextProperty().SetColor(c)  # Green color
-        measurement_actor.GetTextProperty().SetFontSize(16)  # Adjust font size as needed
-        measurement_actor.SetVisibility(True)
+        measurement_text = f"{distance_mm:.2f} mm"        
+        self.measurement_actor.SetInput(measurement_text)
+        self.measurement_actor.SetPosition(position[0], position[1], position[2] + 1.0)
+        self.measurement_actor.GetTextProperty().SetColor(c)  # Green color
+        self.measurement_actor.GetTextProperty().SetFontSize(16)  # Adjust font size as needed
+        self.measurement_actor.SetVisibility(True)
 
-        self.measurement_actors[(position, distance_mm)].append(measurement_actor)
-
-        self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer().AddActor(
-            measurement_actor
-        )
+ 
 
     def random_color(self):
         # Generate random RGB values
@@ -152,21 +147,29 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
             picked_position = picker.GetPickPosition()
             self.handle_measurement(picked_position)
 
-    def handle_measurement(self, position):
-        if not self.measurement_active:
-            self.measurement_start_position = position
-            self.measurement_active = True                           
-          
-        else:
-            distance_mm = self.calculate_distance(
+    def udpate_distance(self, position):
+        distance_mm = self.calculate_distance(
                 self.measurement_start_position, position
             )
-            midpoint = (
+        midpoint = (
                 (self.measurement_start_position[0] + position[0]) / 2,
                 (self.measurement_start_position[1] + position[1]) / 2,
                  position[2],
             )
-            self.add_measurement_text(midpoint, distance_mm)
+        self.add_measurement_text(midpoint, distance_mm)
+
+
+    def handle_measurement(self, position):
+        if not self.measurement_active:
+            self.measurement_actor = vtk.vtkBillboardTextActor3D()            
+            self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer().AddActor(
+            self.measurement_actor)
+            self.measurement_start_position = position
+            self.measurement_active = True        
+            self.dynamic_line_source = vtk.vtkLineSource()                   
+          
+        else:
+            self.udpate_distance(position=position)
             self.measurement_active = False
 
         c = self.random_color()
@@ -175,8 +178,7 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
 
     def draw_line_with_points(self, start_position, end_position, c):
         self._add_saphere(start_position, end_position)
-        # Create a line source for the dynamic line
-        self.dynamic_line_source = vtk.vtkLineSource()
+        # Create a line source for the dynamic line      
         self.dynamic_line_source.SetPoint1(start_position)
         self.dynamic_line_source.SetPoint2(end_position)
         self.dynamic_line_source.Update()
@@ -217,5 +219,6 @@ class MeasurementInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
                 self.dynamic_line_source.SetPoint1(self.measurement_start_position)
                 self.dynamic_line_source.SetPoint2(end_position)
                 self.dynamic_line_source.Update()
+                self.udpate_distance(end_position)
                 self.vtk_widget.GetRenderWindow().Render() 
  

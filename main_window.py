@@ -302,6 +302,9 @@ class MainWindow(QtWidgets.QMainWindow):
             # Increment the color index
             self.color_index = (self.color_index + 1) % len(self.colors)
             self.set_gold_material()
+         
+        if key == "Escape":
+            self._handle_buttons_states()
 
     def set_gold_material(self):
         actor = self._image_actor
@@ -621,6 +624,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.measurement_button.setChecked(measurement)
         self.switch_button.setChecked(wireframe)
         self.annotation_button.setChecked(annotate)
+        if not drawing and not measurement and not wireframe and not annotate:
+             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
     def on_drawing_button_clicked(self):
         if self.drawing_button.isChecked():
