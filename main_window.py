@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QCheckBox
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.setWindowTitle("Express CAD Service Viewer")
+        self.setWindowTitle("Express CAD Service Viewer - Beta v2.0.0 support: expresscadservice@gmail.com")
         self.rectangle_actor = None
         self.size_annotation_text = None
         self._image_actor = None
