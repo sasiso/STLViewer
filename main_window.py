@@ -338,6 +338,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vtk_widget.GetRenderWindow().Render()
 
     def record_video(self):
+        self.record_button.setEnabled(False)
         # Add a timer to control the rotation for video recording
         self.video_progress_bar.setVisible(True)
         self.remove_png_files(self.temp_folder)
@@ -400,7 +401,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 camera.Elevation(speed)
 
         if  self.video_recording_checkbox.isChecked():
-            self.rotation_angle += 1
+            self.rotation_angle += 2
         else:
             self.rotation_angle += speed
 
@@ -429,6 +430,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             video_capture.encode(file_name_without_extension + ".mp4")            
             self.video_progress_bar.setVisible(False)
+            self.record_button.setEnabled(True)
 
     def remove_png_files(self, folder_path):
         try:
