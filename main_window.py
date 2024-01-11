@@ -339,6 +339,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def record_video(self):
         # Add a timer to control the rotation for video recording
+        self.video_progress_bar.setVisible(True)
+        self.remove_png_files(self.temp_folder)
         self.rotation_timer = QtCore.QTimer()
         self.rotation_timer.timeout.connect(self.rotate_for_video)
         self.rotation_angle = 0  # Initial angle for rotation
@@ -382,8 +384,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # --
 
-    def rotate_for_video(self):
-        self.video_progress_bar.setVisible(True)
+    def rotate_for_video(self):        
         # Rotate the camera for video recording
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
@@ -398,7 +399,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 camera.OrthogonalizeViewUp()
                 camera.Elevation(speed)
 
-        self.rotation_angle += speed
+        if  self.video_recording_checkbox.isChecked():
+            self.rotation_angle += 1
+        else:
+            self.rotation_angle += speed
+
         # Append the frame to the video writer
         self.counter += 1
         spacer = ""
@@ -424,6 +429,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
             video_capture.encode(file_name_without_extension + ".mp4")            
             self.video_progress_bar.setVisible(False)
+
+    def remove_png_files(self, folder_path):
+        try:
+            # List all files in the folder
+            files = os.listdir(folder_path)
+
+            # Iterate through the files
+            for file in files:
+                # Check if the file is a .png file
+                if file.endswith(".png"):
+                    # Construct the full file path
+                    file_path = os.path.join(folder_path, file)
+                    
+                    # Remove the file
+                    os.remove(file_path)
+                    print(f"Removed: {file_path}")
+
+            print("All .png files removed successfully.")
+
+        except Exception as e:
+            print(f"Error: {e}")
 
     def setup_interectors(self):
         from annotation_interactor import AnnotationInteractorStyle
