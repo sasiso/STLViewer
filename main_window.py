@@ -232,6 +232,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.record_button.clicked.connect(self.record_video)
         button_layout.addWidget(self.record_button)
 
+        # Create a checkbox for video recording
+        self.video_recording_checkbox = QCheckBox("Interactive recording", self.tool_pane)        
+        button_layout.addWidget(self.video_recording_checkbox)
+
+        # Create a progress bar for video recording
+        self.video_progress_bar = QProgressBar(self.tool_pane)
+        button_layout.addWidget(self.video_progress_bar)
+        self.video_progress_bar.setVisible(False)
+        self.video_progress_bar.setRange(0, 100)
+
                # Create a checkbox for draw rectangle
         self.draw_rect_checkbox = QCheckBox("Display Size", self.tool_pane)
         self.draw_rect_checkbox.setChecked(True)
@@ -373,19 +383,20 @@ class MainWindow(QtWidgets.QMainWindow):
     # --
 
     def rotate_for_video(self):
+        self.video_progress_bar.setVisible(True)
         # Rotate the camera for video recording
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
         speed = 3
+        if not self.video_recording_checkbox.isChecked():
+            if self.rotation_angle < 359:
+                # Rotate around Y-axis
+                camera.Azimuth(speed)  # Adjust the rotation angle as needed
 
-        if self.rotation_angle < 359:
-            # Rotate around Y-axis
-            camera.Azimuth(speed)  # Adjust the rotation angle as needed
-
-        else:
-            # Rotate around X-axis
-            camera.OrthogonalizeViewUp()
-            camera.Elevation(speed)
+            else:
+                # Rotate around X-axis
+                camera.OrthogonalizeViewUp()
+                camera.Elevation(speed)
 
         self.rotation_angle += speed
         # Append the frame to the video writer
@@ -398,7 +409,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         image_path = os.path.join(self.temp_folder, f"frame_{spacer}{self.counter}.png")
         self.save_current_view_as_image(image_path=image_path)
+        val = int( (self.rotation_angle / (359 * 2))*100)
+        self.video_progress_bar.setValue(val)
 
+      
         # Stop recording after 10 seconds (adjust as needed)
         if self.rotation_angle >= 359 * 2:  # 10 seconds at 30 fps
             import video_capture
@@ -408,7 +422,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 os.path.basename(self.file_path)
             )
 
-            video_capture.encode(file_name_without_extension + ".mp4")
+            video_capture.encode(file_name_without_extension + ".mp4")            
+            self.video_progress_bar.setVisible(False)
 
     def setup_interectors(self):
         from annotation_interactor import AnnotationInteractorStyle
