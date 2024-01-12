@@ -14,6 +14,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Express CAD Service Viewer - Beta v2.0.0 support: expresscadservice@gmail.com")
+        self.setFixedSize(1200,800)
         self.rectangle_actor = None
         self.size_annotation_text = None
         self._image_actor = None
