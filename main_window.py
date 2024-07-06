@@ -484,6 +484,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.save_pdf_with_annotations(file_path)
 
     def save_current_view_as_image(self, image_path):
+         # Get the render window
+        render_window = self.vtk_widget.GetRenderWindow()
+        
+        # Get the current size of the render window
+        width, height = render_window.GetSize()
+
+        # Ensure width and height are divisible by 2
+        if width % 2 != 0:
+            width -= 1
+        if height % 2 != 0:
+            height -= 1
+
+        # Set the adjusted size back to the render window
+        render_window.SetSize(width, height)
         window_to_image_filter = vtk.vtkWindowToImageFilter()
         window_to_image_filter.SetInput(self.vtk_widget.GetRenderWindow())
         window_to_image_filter.Update()
