@@ -10,11 +10,14 @@ from bound_rect import draw_bound_rect
 from weight import get_weight_text
 from PyQt5.QtWidgets import QCheckBox
 
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.setWindowTitle("Express CAD Service Viewer - Beta v2.0.0 support: expresscadservice@gmail.com")
-        self.setFixedSize(1200,800)
+        self.setWindowTitle(
+            "Express CAD Service Viewer - Beta v2.0.0 support: expresscadservice@gmail.com"
+        )
+        self.setFixedSize(1200, 800)
         self.rectangle_actor = None
         self.size_annotation_text = None
         self._image_actor = None
@@ -147,7 +150,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.annotation_text_edit.setStyleSheet(
             "QTextEdit {" "border: 1px solid gray;" "border-radius: 5px;" "}"
         )
-        self.annotation_text_edit.setPlaceholderText("Click annotion button, add text here and click on model")  # Set your watermark hint
+        self.annotation_text_edit.setPlaceholderText(
+            "Click annotion button, add text here and click on model"
+        )  # Set your watermark hint
 
         self.progress_bar = QProgressBar(self.tool_pane)
         # Add buttons to the button layout
@@ -216,7 +221,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.text_actor.GetTextProperty().SetFontSize(20)
         self.renderer.AddActor(self.text_actor)
 
-            # Create a text actor for the watermark
+        # Create a text actor for the watermark
         self.watermark_actor = vtk.vtkTextActor()
         self.watermark_actor.SetTextScaleModeToNone()
         self.watermark_actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
@@ -224,8 +229,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.watermark_actor.GetTextProperty().SetColor(0.5, 0.5, 0.5)  # Gray color
         self.watermark_actor.GetTextProperty().SetFontSize(20)
 
+        # Create an actor for the logo overlay
+        self.logo_actor = vtk.vtkActor2D()
+
         self._add_logo()
-        
+
         self.renderer.AddActor(self.watermark_actor)
 
         # Create a button to record video
@@ -234,7 +242,9 @@ class MainWindow(QtWidgets.QMainWindow):
         button_layout.addWidget(self.record_button)
 
         # Create a checkbox for video recording
-        self.video_recording_checkbox = QCheckBox("Interactive recording", self.tool_pane)        
+        self.video_recording_checkbox = QCheckBox(
+            "Interactive recording", self.tool_pane
+        )
         button_layout.addWidget(self.video_recording_checkbox)
 
         # Create a progress bar for video recording
@@ -243,7 +253,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.video_progress_bar.setVisible(False)
         self.video_progress_bar.setRange(0, 100)
 
-               # Create a checkbox for draw rectangle
+        # Create a checkbox for draw rectangle
         self.draw_rect_checkbox = QCheckBox("Display Size", self.tool_pane)
         self.draw_rect_checkbox.setChecked(True)
         self.draw_rect_checkbox.stateChanged.connect(self.on_draw_rect_checkbox_changed)
@@ -268,31 +278,78 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_annoation_actor(self, remove=False):
         if remove:
             for a in self.size_annotation_text:
-                self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer().RemoveActor(a)
-            self.size_annotation_text = None    
+                self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer().RemoveActor(
+                    a
+                )
+            self.size_annotation_text = None
         else:
             for a in self.size_annotation_text:
                 self.renderer.AddActor(a)
 
     def _add_logo(self):
-        # Get the path to the branding.txt file in the same directory as the executable
-        branding_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'branding.txt')
+        # Paths for branding.txt and logo.png
+        branding_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "branding.txt"
+        )
+        logo_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "logo.png"
+        )
 
+        # Read branding text (First 3 lines from branding.txt or default text)
         if os.path.exists(branding_file_path):
-            # Read the first three lines from branding.txt
-            with open(branding_file_path, 'r') as file:
+            with open(branding_file_path, "r", encoding="utf-8") as file:
                 lines = file.readlines()[:3]
-                text = ''.join(lines)
+                text = "".join(lines).strip()
         else:
-            # Use hardcoded values if branding.txt doesn't exist
             text = "Express CAD Service\nWhatsApp: +61-410168567\nEmail: expresscadservice@gmail.com"
 
-        # Assuming there is a method like SetInputText for setting input in the watermark_actor
+        # Set watermark text
         self.watermark_actor.SetInput(text)
+
+        # Load and process the logo if it exists
+        if os.path.exists(logo_file_path):
+            logo_reader = vtk.vtkPNGReader()
+            logo_reader.SetFileName(logo_file_path)
+            logo_reader.Update()
+
+            if logo_reader.GetOutput().GetScalarType() == 0:
+                print("Error: Failed to read logo file. Ensure it is a valid PNG.")
+                return
+
+            # Get original image dimensions
+            original_width, original_height, _ = logo_reader.GetOutput().GetDimensions()
+
+            # Define new width and maintain aspect ratio
+            new_width = 100  # Resize width in pixels
+            aspect_ratio = original_height / original_width
+            new_height = int(new_width * aspect_ratio)
+
+            # Use vtkImageResize for better scaling
+            resize = vtk.vtkImageResize()
+            resize.SetInputConnection(logo_reader.GetOutputPort())
+            resize.SetOutputDimensions(new_width, new_height, 1)
+            resize.Update()
+
+            # Use vtkImageMapper for overlay (ensures it remains on screen)
+            image_mapper = vtk.vtkImageMapper()
+            image_mapper.SetInputConnection(resize.GetOutputPort())
+            image_mapper.SetColorWindow(255)  # Adjust contrast
+            image_mapper.SetColorLevel(127.5)  # Adjust brightness
+
+            self.logo_actor.SetMapper(image_mapper)
+
+            # Position the logo in viewport coordinates (Bottom-left, just above text)
+            position = self.logo_actor.GetPositionCoordinate()
+            position.SetCoordinateSystemToNormalizedViewport()  # Screen space
+            position.SetValue(0.05, 0.15)  # X, Y position (Bottom-left above text)
+
+            # Add the logo as an overlay (Always on top)
+            self.renderer.AddActor2D(self.logo_actor)
+
     def on_draw_rect_checkbox_changed(self, state):
         if self.rectangle_actor is None:
             return
-        
+
         self.draw_rect = state == QtCore.Qt.Checked
         if not self.draw_rect:
             self.renderer.RemoveActor(self.rectangle_actor)
@@ -300,11 +357,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.remove_annotations()
         else:
             self._handle_size_annotations()
-            self.vtk_widget.GetRenderWindow().Render()    
+            self.vtk_widget.GetRenderWindow().Render()
 
-    def remove_annotations(self):             
+    def remove_annotations(self):
         self.add_annoation_actor(remove=True)
-        self.vtk_widget.GetRenderWindow().Render()        
+        self.vtk_widget.GetRenderWindow().Render()
 
     def on_key_press(self, obj, event):
         key = self.interactor.GetKeySym()
@@ -313,7 +370,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # Increment the color index
             self.color_index = (self.color_index + 1) % len(self.colors)
             self.set_gold_material()
-         
+
         if key == "Escape":
             self._handle_buttons_states()
 
@@ -386,7 +443,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # --
 
-    def rotate_for_video(self):        
+    def rotate_for_video(self):
         # Rotate the camera for video recording
         renderer = self.vtk_widget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         camera = renderer.GetActiveCamera()
@@ -401,7 +458,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 camera.OrthogonalizeViewUp()
                 camera.Elevation(speed)
 
-        if  self.video_recording_checkbox.isChecked():
+        if self.video_recording_checkbox.isChecked():
             self.rotation_angle += 2
         else:
             self.rotation_angle += speed
@@ -416,10 +473,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         image_path = os.path.join(self.temp_folder, f"frame_{spacer}{self.counter}.png")
         self.save_current_view_as_image(image_path=image_path)
-        val = int( (self.rotation_angle / (359 * 2))*100)
+        val = int((self.rotation_angle / (359 * 2)) * 100)
         self.video_progress_bar.setValue(val)
 
-      
         # Stop recording after 10 seconds (adjust as needed)
         if self.rotation_angle >= 359 * 2:  # 10 seconds at 30 fps
             import video_capture
@@ -429,7 +485,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 os.path.basename(self.file_path)
             )
 
-            video_capture.encode(file_name_without_extension + ".mp4")            
+            video_capture.encode(file_name_without_extension + ".mp4")
             self.video_progress_bar.setVisible(False)
             self.record_button.setEnabled(True)
 
@@ -444,7 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if file.endswith(".png"):
                     # Construct the full file path
                     file_path = os.path.join(folder_path, file)
-                    
+
                     # Remove the file
                     os.remove(file_path)
                     print(f"Removed: {file_path}")
@@ -484,9 +540,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.save_pdf_with_annotations(file_path)
 
     def save_current_view_as_image(self, image_path):
-         # Get the render window
+        # Get the render window
         render_window = self.vtk_widget.GetRenderWindow()
-        
+
         # Get the current size of the render window
         width, height = render_window.GetSize()
 
@@ -597,7 +653,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         if self.file_path:
-            if False:
+            if True:
                 w = get_weight_text(self.file_path)
                 text = ""
                 for key, value in w.items():
@@ -608,7 +664,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.set_gold_material()
 
     def _handle_size_annotations(self):
-        self.rectangle_actor, self.size_annotation_text = draw_bound_rect(self.reader, self.renderer)
+        self.rectangle_actor, self.size_annotation_text = draw_bound_rect(
+            self.reader, self.renderer
+        )
         self.renderer.AddActor(self.rectangle_actor)
         self.add_annoation_actor()
         self.draw_rect_checkbox.setChecked(True)
@@ -624,7 +682,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Get the STL mesh
         stl_mesh = self.reader.GetOutput()
-                
+
         # Create a mapper
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(stl_mesh)
@@ -637,6 +695,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.renderer.AddActor(self._image_actor)
         self.renderer.AddActor(self.text_actor)
         self.renderer.AddActor(self.watermark_actor)
+        self.renderer.AddActor(self.logo_actor)
         self._handle_size_annotations()
         self.renderer.ResetCamera()
 
@@ -671,19 +730,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def on_measurement_button_clicked(self):
         if self.measurement_button.isChecked():
             self._handle_buttons_states(measurement=True)
-            self.interactor.SetInteractorStyle(self.measurement_interactor_style)       
+            self.interactor.SetInteractorStyle(self.measurement_interactor_style)
         else:
             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
-           
 
-    def _handle_buttons_states(self, drawing=False, measurement=False, 
-                               wireframe=False,annotate=False):
+    def _handle_buttons_states(
+        self, drawing=False, measurement=False, wireframe=False, annotate=False
+    ):
         self.drawing_button.setChecked(drawing)
         self.measurement_button.setChecked(measurement)
         self.switch_button.setChecked(wireframe)
         self.annotation_button.setChecked(annotate)
         if not drawing and not measurement and not wireframe and not annotate:
-             self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+            self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
     def on_drawing_button_clicked(self):
         if self.drawing_button.isChecked():
