@@ -320,7 +320,7 @@ class MainWindow(QtWidgets.QMainWindow):
             original_width, original_height, _ = logo_reader.GetOutput().GetDimensions()
 
             # Define new width and maintain aspect ratio
-            new_width = 100  # Resize width in pixels
+            new_width = 200  # Resize width in pixels
             aspect_ratio = original_height / original_width
             new_height = int(new_width * aspect_ratio)
 
@@ -341,7 +341,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # Position the logo in viewport coordinates (Bottom-left, just above text)
             position = self.logo_actor.GetPositionCoordinate()
             position.SetCoordinateSystemToNormalizedViewport()  # Screen space
-            position.SetValue(0.05, 0.15)  # X, Y position (Bottom-left above text)
+            position.SetValue(0.05, 0.10)  # X, Y position (Bottom-left above text)
 
             # Add the logo as an overlay (Always on top)
             self.renderer.AddActor2D(self.logo_actor)
